@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QBCore Shared Data Panel</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="panel" id="panel" style="display: none;">
+        <!-- Title Bar -->
+        <div class="titlebar">
+            <div class="traffic-lights">
+                <div class="light close" id="closeBtn"></div>
+                <div class="light minimize"></div>
+                <div class="light maximize"></div>
+            </div>
+            <div class="title">QBCore Shared Data Panel</div>
+            <div class="titlebar-actions">
+                <button class="ghost-btn" id="refreshBtn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <path d="M1 4v6h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+                <button class="ghost-btn" id="closeBtnAlt">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <path d="M18 6l-12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Tab Bar -->
+        <div class="tab-bar">
+            <div class="tabs">
+                <div class="tab active" data-tab="items">Items</div>
+                <div class="tab" data-tab="jobs">Jobs</div>
+                <div class="tab" data-tab="gangs">Gangs</div>
+                <div class="tab" data-tab="vehicles">Vehicles</div>
+                <div class="tab" data-tab="weapons">Weapons</div>
+            </div>
+            <div class="tab-actions">
+                <!-- Find Bar -->
+                <div class="find-bar" id="findBar" style="display: none;">
+                    <input type="text" id="findInput" placeholder="Find">
+                    <button id="findPrev">↑</button>
+                    <button id="findNext">↓</button>
+                    <span id="findCounter">0/0</span>
+                    <button id="findClose">×</button>
+                </div>
+                
+                <select id="fmtSelect">
+                    <option value="json">JSON</option>
+                    <option value="lua">Lua</option>
+                </select>
+                
+                <button class="action-btn" id="addBtn">Add</button>
+                <button class="action-btn" id="updateBtn">Update</button>
+                <button class="action-btn danger" id="removeBtn">Remove</button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="workbench">
+            <!-- Explorer -->
+            <div class="explorer">
+                <div class="section-header">Explorer</div>
+                <input type="text" id="searchInput" placeholder="Search..." class="search-input">
+                <div class="list-container">
+                    <div id="list" class="key-list"></div>
+                </div>
+            </div>
+
+            <!-- Editor -->
+            <div class="editor">
+                <div class="editor-header">
+                    <span id="breadcrumb">items/new_key<span id="fileExt">.json</span></span>
+                </div>
+                <div class="code-area">
+                    <div class="line-numbers" id="lineNumbers">1</div>
+                    <textarea id="codeEditor" spellcheck="false"></textarea>
+                </div>
+            </div>
+
+            <!-- Inspector -->
+            <div class="inspector">
+                <div class="section-header">Details</div>
+                <div class="details" id="details">
+                    <div class="no-data">No data selected</div>
+                </div>
+                
+                <div class="section-header">Items Helpers</div>
+                <div class="helpers">
+                    <button class="helper-btn" id="fillTemplateBtn">Fill full item template</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <div class="status-left">
+                <span id="statusFormat">JSON</span>
+            </div>
+            <div class="status-center">
+                <span id="statusMessage">Ready</span>
+            </div>
+            <div class="status-right">
+                <span id="statusPos">Ln 1, Col 1</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toastContainer"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>
