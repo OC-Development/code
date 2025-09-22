@@ -22,6 +22,151 @@ const fieldOrder = {
 const el = (selector) => document.querySelector(selector);
 const els = (selector) => document.querySelectorAll(selector);
 
+// Syntax highlighting for Lua
+const highlightLua = (code) => {
+    return code
+        // Comments
+        .replace(/(--.*$)/gm, '<span class="lua-comment">$1</span>')
+        // Strings
+        .replace(/(['"])((?:\\.|(?!\1)[^\\])*?)\1/g, '<span class="lua-string">$1$2$1</span>')
+        // Numbers
+        .replace(/\b(\d+\.?\d*)\b/g, '<span class="lua-number">$1</span>')
+        // Keywords
+        .replace(/\b(local|function|end|if|then|else|elseif|while|for|do|repeat|until|break|return|and|or|not|nil|true|false)\b/g, '<span class="lua-keyword">$1</span>')
+        // Table keys
+        .replace(/(\w+)\s*=/g, '<span class="lua-table-key">$1</span> <span class="lua-operator">=</span>')
+        // Brackets
+        .replace(/([{}[\]()])/g, '<span class="lua-bracket">$1</span>')
+        // Operators
+        .replace(/([+\-*/%<>=!&|])/g, '<span class="lua-operator">$1</span>');
+};
+
+// Syntax highlighting for JavaScript/JSON
+const highlightJS = (code) => {
+    return code
+        // Comments
+        .replace(/(\/\/.*$|\/\*[\s\S]*?\*\/)/gm, '<span class="js-comment">$1</span>')
+        // Strings
+        .replace(/(['"`])((?:\\.|(?!\1)[^\\])*?)\1/g, '<span class="js-string">$1$2$1</span>')
+        // Numbers
+        .replace(/\b(\d+\.?\d*)\b/g, '<span class="js-number">$1</span>')
+        // Keywords
+        .replace(/\b(var|let|const|function|return|if|else|for|while|do|break|continue|switch|case|default|try|catch|finally|throw|new|this|typeof|instanceof|in|of|true|false|null|undefined)\b/g, '<span class="js-keyword">$1</span>')
+        // Brackets
+        .replace(/([{}[\]()])/g, '<span class="js-bracket">$1</span>')
+        // Operators
+        .replace(/([+\-*/%<>=!&|])/g, '<span class="js-operator">$1</span>');
+};
+
+// Generate complete file view
+const generateFullFile = () => {
+    const currentData = state.data[state.tab] || {};
+    const keys = Object.keys(currentData).sort();
+    
+    if (keys.length === 0) {
+        return 'QBCore = QBCore or {}\n\nQBCore.Shared = QBCore.Shared or {}\n\n-- No data available';
+    }
+    
+    let luaContent = `QBCore = QBCore or {}\n\nQBCore.Shared = QBCore.Shared or {}\n\n`;
+    
+    // Generate the main table
+    luaContent += `QBCore.Shared.${state.tab.charAt(0).toUpperCase() + state.tab.slice(1)} = {\n`;
+    
+    keys.forEach((key, index) => {
+        const value = currentData[key];
+        const luaEntry = toLuaEntry(state.tab, key, value);
+        
+        // Extract just the value part (after the = sign)
+        const valuePart = luaEntry.split(' = ').slice(1).join(' = ');
+        
+        // Format the key properly
+        let formattedKey = key;
+        if (state.tab === 'weapons' && value && value.name) {
+            formattedKey = `['${value.name}']`;
+        } else if (/^[a-zA-Z_]\w*$/.test(key)) {
+            formattedKey = key;
+        } else if (!isNaN(key)) {
+            formattedKey = `[${key}]`;
+        } else {
+            formattedKey = `['${key}']`;
+        }
+        
+        luaContent += `    ${formattedKey} = ${valuePart}`;
+        if (index < keys.length - 1) {
+            luaContent += ',';
+        }
+        luaContent += '\n';
+    });
+    
+    luaContent += '}';
+    
+    return luaContent;
+};
+
+// Update full file view
+const updateFullFileView = () => {
+    const fullFileContent = el('#fullFileContent');
+    const luaCode = generateFullFile();
+    
+    // Apply syntax highlighting
+    const highlightedCode = highlightLua(luaCode);
+    fullFileContent.innerHTML = highlightedCode;
+};
+
+// Copy full file to clipboard
+const copyFullFile = async () => {
+    try {
+        const luaCode = generateFullFile();
+        await navigator.clipboard.writeText(luaCode);
+        showToast('Complete file copied to clipboard!', 'success');
+    } catch (err) {
+        showToast('Failed to copy to clipboard', 'error');
+    }
+};
+
+// Format code in editor
+const formatCode = () => {
+    const editor = el('#codeEditor');
+    let code = editor.value;
+    
+    try {
+        if (state.format === 'json') {
+            const parsed = JSON.parse(code);
+            code = JSON.stringify(parsed, null, 4);
+        } else {
+            // Basic Lua formatting
+            code = code
+                .replace(/\s*=\s*/g, ' = ')
+                .replace(/\s*,\s*/g, ', ')
+                .replace(/{\s*/g, '{\n    ')
+                .replace(/\s*}/g, '\n}')
+                .replace(/,\s*\n/g, ',\n');
+        }
+        
+        setText(code);
+        showToast('Code formatted successfully', 'success');
+    } catch (e) {
+        showToast('Failed to format code: ' + e.message, 'error');
+    }
+};
+
+// Validate code syntax
+const validateCode = () => {
+    const editor = el('#codeEditor');
+    const code = editor.value;
+    
+    try {
+        if (state.format === 'json') {
+            JSON.parse(code);
+        } else {
+            luaToJson(code);
+        }
+        showToast('Syntax is valid!', 'success');
+    } catch (e) {
+        showToast('Syntax error: ' + e.message, 'error');
+    }
+};
+
 // NUI Bridge
 const sendNui = (action, data) => {
     fetch(`https://${GetParentResourceName()}/${action}`, {
@@ -157,6 +302,9 @@ const setText = (text) => {
     el('#codeEditor').value = text;
     updateLineNumbers();
     updateCursorPosition();
+    
+    // Apply syntax highlighting to editor (for display purposes)
+    // Note: This is just for visual enhancement, actual editing still works on plain text
 };
 
 // Render key list
@@ -212,6 +360,7 @@ const selectKey = (key) => {
     renderList();
     renderInspector();
     updateStatus();
+    updateFullFileView();
 };
 
 // Render inspector panel
@@ -412,6 +561,7 @@ document.addEventListener('DOMContentLoaded', () => {
             setText(state.format === 'lua' ? "['new_key'] = { }" : '{}');
             renderInspector();
             updateStatus();
+            updateFullFileView();
         });
     });
     
@@ -432,6 +582,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         renderInspector();
         updateStatus();
+        updateFullFileView();
     });
     
     // Search input
@@ -442,6 +593,27 @@ document.addEventListener('DOMContentLoaded', () => {
     editor.addEventListener('input', () => {
         updateLineNumbers();
         renderInspector();
+        // Update full file view when current item changes
+        if (state.selectedKey) {
+            // Parse current editor content and update state
+            try {
+                let value;
+                if (state.format === 'lua') {
+                    value = luaToJson(editor.value);
+                } else {
+                    value = JSON.parse(editor.value);
+                }
+                
+                // Update the data in state
+                if (!state.data[state.tab]) {
+                    state.data[state.tab] = {};
+                }
+                state.data[state.tab][state.selectedKey] = value;
+                updateFullFileView();
+            } catch (e) {
+                // Ignore parse errors during typing
+            }
+        }
     });
     
     editor.addEventListener('keyup', updateCursorPosition);
@@ -461,6 +633,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Helper buttons
     el('#fillTemplateBtn').addEventListener('click', fillItemTemplate);
+    el('#formatCodeBtn').addEventListener('click', formatCode);
+    el('#validateCodeBtn').addEventListener('click', validateCode);
+    el('#copyFullFileBtn').addEventListener('click', copyFullFile);
     
     // Find functionality
     el('#findInput').addEventListener('input', performFind);
@@ -546,6 +721,7 @@ window.addEventListener('message', (event) => {
             
             renderInspector();
             updateStatus();
+            updateFullFileView();
             break;
             
         case 'result':
